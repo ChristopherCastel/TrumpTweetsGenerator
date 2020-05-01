@@ -1,6 +1,6 @@
 all : main.oza
-main.oza : main.oz reader.ozf gui.ozf
-	ozc -c main.oz -o main.oza 
+main.oza : main.oz GUI.ozf Reader.ozf
+	ozc -c main.oz -o main.oza
 %.ozf : %.oz
 	ozc -c $< -o $@
 run : main.oza
