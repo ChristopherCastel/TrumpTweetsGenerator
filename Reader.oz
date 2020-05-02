@@ -17,7 +17,7 @@ in
                 {Filereader close}
                 nil
             else
-                {String.toAtom Line}|{BuildStream}
+                Line|{BuildStream}
             end
         end
     in

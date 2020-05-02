@@ -1,5 +1,5 @@
 all : main.oza
-main.oza : main.oz GUI.ozf Reader.ozf
+main.oza : main.oz GUI.ozf Reader.ozf Parser.ozf
 	ozc -c main.oz -o main.oza
 %.ozf : %.oz
 	ozc -c $< -o $@
