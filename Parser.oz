@@ -13,6 +13,7 @@ define
     ConvertAtomsToStrings
     BuildWordList
     BuildSentenceList
+    SentenceToDictionary
 
     % Global variables
     PredictionDictionaryPort
@@ -53,19 +54,33 @@ in
         proc {ParseStream}
             for Line in Stream do SanitizedLine WordList SentenceList in
                 % {System.show {String.toAtom SanitizedLine}}
-                % TODO : send to "save" thread
-
                 thread SanitizedLine = {SanitizeLine Line} end
                 thread WordList = {BuildWordList SanitizedLine} end
                 thread SentenceList = {BuildSentenceList WordList} end
-                for X in SentenceList do
-                    {System.show X}
-                end
-                {System.show '---------------------------------------'}
+                for Sentence in SentenceList do
+                    {SentenceToDictionary Sentence}
                 end
             end
+        end
     in
         thread {ParseStream} end
+    end
+
+    proc {SentenceToDictionary Sentence}
+        proc {Loop Sentence PrevWord}
+            case Sentence
+                of CurrWord|OtherWords then
+                    TailSentenceOut
+                in
+                    if PrevWord \= null then
+                        {Send PredictionDictionaryPort save(word:PrevWord next:CurrWord)}
+                    end
+                    {Loop OtherWords CurrWord}
+                [] nil then skip
+            end
+        end
+    in
+        {Loop Sentence null}
     end
 
     fun {BuildWordList Line}

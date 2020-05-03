@@ -19,6 +19,7 @@ in
     proc {HandleCommands Stream}
         case Stream
             of save(word:Word next:Next)|T then
+                {System.show save(word:Word next:Next)}
                 {HandleCommands T}
             [] _|T then
                 {System.show error('[Prediction dictionary]' 'Unknown command')}
