@@ -9,7 +9,7 @@ export
 define
     % Functions
     ThreadedParseStream
-    Sanitize
+    SanitizeLine
     ConvertAtomsToStrings
     BuildWordList
     BuildSentenceList
@@ -55,15 +55,15 @@ in
                 % {System.show {String.toAtom SanitizedLine}}
                 % TODO : send to "save" thread
 
-                thread SanitizedLine = {Sanitize Line} end
+                thread SanitizedLine = {SanitizeLine Line} end
                 thread WordList = {BuildWordList SanitizedLine} end
                 thread SentenceList = {BuildSentenceList WordList} end
                 for X in SentenceList do
                     {System.show X}
                 end
                 {System.show '---------------------------------------'}
+                end
             end
-        end
     in
         thread {ParseStream} end
     end
@@ -82,7 +82,6 @@ in
                         end
                         {Loop TailLine NextWord NextWord TailLineOut}
                     else X in
-                        % {Char.toLower CurrChar}|X = WordTail
                         CurrChar|X = WordTail
                         {Loop TailLine Word X LineOut}
                     end
@@ -99,15 +98,38 @@ in
         LineOut = {Loop Line Word Word}
     end
 
-    fun {Sanitize Line}
+    fun {SanitizeLine Line}
         fun {IsISO8859Defined Character}
             (Character >= 32 andthen Character =< 126) orelse (Character >= 160 andthen Character =< 255)
         end
         fun {IsRestrictedISO8859Defined Character}
             (Character >= 32 andthen Character =< 126)
         end
+        % "trimming" (2+) spaces between words
+        fun {TrimMultiSpaces Line}
+            proc {Loop Line PrevChar LineOut}
+                case Line
+                    of CurrChar|OtherChars then
+                        TailLineOut
+                    in
+                        if {Char.isSpace CurrChar} andthen {Char.isSpace PrevChar} then
+                            {Loop OtherChars CurrChar LineOut}
+                        else
+                            LineOut = CurrChar|TailLineOut
+                            {Loop OtherChars CurrChar TailLineOut}
+                        end
+                    [] nil then
+                        LineOut = nil
+                end
+            end
+            LineOut
+        in
+            LineOut = {Loop Line " ".1}
+        end
+        RestrictedISO8859Line
     in
-        {List.filter Line IsRestrictedISO8859Defined}
+        RestrictedISO8859Line = {List.filter Line IsRestrictedISO8859Defined}
+        {TrimMultiSpaces RestrictedISO8859Line}
     end
 
     fun {BuildSentenceList Line}
