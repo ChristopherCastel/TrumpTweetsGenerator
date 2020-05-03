@@ -2,16 +2,24 @@ functor
 import
     System
     Browser
+    PredictionDictionary
     % Regex at 'x-oz://contrib/regex'
 export
     parseStream:ThreadedParseStream
 define
+    % Functions
     ThreadedParseStream
     Sanitize
     ConvertAtomsToStrings
-    BuildWorldList
+    BuildWordList
+    BuildSentenceList
+
+    % Global variables
+    PredictionDictionaryPort
     ToReplace
     ToRemove
+    BreakList
+    BreakListNumber
 in
 
 % ---------------------------------- UTILS ----------------------------------
@@ -35,40 +43,54 @@ in
 
     % ToReplace = {ConvertAtomsToStrings [t('&amp;' '&')]}
     ToRemove = {ConvertAtomsToStrings ['']}
+    PredictionDictionaryPort = {PredictionDictionary.createDictionary}
+    BreakList = ['.' ':' '-' '(' ')' '[' ']' '{' '}' ',' '\'' '!' '?'] % TODO should handle parentheses handling with subfunctions
+    BreakListNumber = {List.map BreakList fun {$ X} {Atom.toString X}.1 end}
 
 % ------------------------------ MODULE LOGIC ------------------------------
 
-    proc {ThreadedParseStream Stream}
+    proc {ThreadedParseStream Stream }
         proc {ParseStream}
-            for Line in Stream do SanitizedLine in
-                SanitizedLine = {Sanitize Line}
+            for Line in Stream do SanitizedLine WordList SentenceList in
                 % {System.show {String.toAtom SanitizedLine}}
                 % TODO : send to "save" thread
+
+                thread SanitizedLine = {Sanitize Line} end
+                thread WordList = {BuildWordList SanitizedLine} end
+                thread SentenceList = {BuildSentenceList WordList} end
+                for X in SentenceList do
+                    {System.show X}
+                end
+                {System.show '---------------------------------------'}
             end
         end
     in
         thread {ParseStream} end
     end
 
-    fun {BuildWorldList Line}
+    fun {BuildWordList Line}
         proc {Loop Line Word WordTail LineOut}
             case Line
                 of CurrChar|TailLine then TailLineOut in
                     if {Char.isSpace CurrChar} then
-                        NewWord
+                        NextWord SanitizedWord
                     in
-                        WordTail = nil
-                        LineOut = Word|TailLineOut
-                        {Loop TailLine NewWord NewWord TailLineOut}
+                        SanitizedWord = Word % {Sanitize Word}
+                        if SanitizedWord \= null then
+                            WordTail = nil
+                            LineOut = SanitizedWord|TailLineOut
+                        end
+                        {Loop TailLine NextWord NextWord TailLineOut}
                     else X in
-                        {Char.toLower CurrChar}|X = WordTail
+                        % {Char.toLower CurrChar}|X = WordTail
+                        CurrChar|X = WordTail
                         {Loop TailLine Word X LineOut}
                     end
                 [] nil then
                     WordTail = nil
                     LineOut = Word|nil
                 [] _ then
-                    {System.show error([BuildWorldList] _)}
+                    {System.show error([BuildWordList] _)}
             end
         end
         Word
@@ -78,12 +100,45 @@ in
     end
 
     fun {Sanitize Line}
-        proc {SpaceFilter Char}
-            {Char.isSpace Char}
+        fun {IsISO8859Defined Character}
+            (Character >= 32 andthen Character =< 126) orelse (Character >= 160 andthen Character =< 255)
         end
-        WordList = {List.partition Line Char.isSpace _}
+        fun {IsRestrictedISO8859Defined Character}
+            (Character >= 32 andthen Character =< 126)
+        end
     in
-        WordList
+        {List.filter Line IsRestrictedISO8859Defined}
+    end
+
+    fun {BuildSentenceList Line}
+        % determines whether a word marks the end the sentence
+        fun {IsEndOfSentence Word}
+            {List.member {List.last Word} BreakListNumber}
+        end
+
+        % builds the list of sentences
+        proc {Loop Line Sentence SentenceTail Sentences}
+            case Line
+                of CurrWord|OtherWords then TailSentences in
+                    if {IsEndOfSentence CurrWord} then NextSentence in
+                        SentenceTail = nil
+                        Sentences = Sentence|TailSentences
+                        {Loop OtherWords NextSentence NextSentence TailSentences}
+                    else X in
+                        CurrWord|X = SentenceTail
+                        {Loop OtherWords Sentence X Sentences}
+                    end
+                [] nil then
+                    SentenceTail = nil
+                    Sentences = Sentence|nil
+                [] _ then
+                    {System.show error([BuildSentenceList] _)}
+            end
+        end
+        Sentence
+        Sentences
+    in
+        Sentences = {Loop Line Sentence Sentence}
     end
 
     % unhandled cases:
