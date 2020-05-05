@@ -14,6 +14,7 @@ in
         % Stream = {Reader.readfile 'tweets/part_'#Filenumber#'.txt'}
         Stream = {Reader.readfile 'tweets/part_1.txt'}
         {Parser.parseStream Stream}
+        % {Parser.parseStream ["Bonjour... ... fin... ...termine main.tenant . . ."]}
     % end
 end
 

@@ -57,9 +57,16 @@ in
                 thread SanitizedLine = {SanitizeLine Line} end
                 thread WordList = {BuildWordList SanitizedLine} end
                 thread SentenceList = {BuildSentenceList WordList} end
-                for Sentence in SentenceList do
-                    {SentenceToDictionary Sentence}
+                {Browser.browse SentenceList}
+                for S in SentenceList do
+                    {System.show debug('SentenceList' 'NewSentence')}
+                    for W in S do
+                        {System.show debug('SentenceList' {String.toAtom W})}
+                    end
                 end
+                % for Sentence in SentenceList do
+                %     {SentenceToDictionary Sentence}
+                % end
             end
         end
     in
@@ -104,7 +111,7 @@ in
                     WordTail = nil
                     LineOut = Word|nil
                 [] _ then
-                    {System.show error([BuildWordList] _)}
+                    {System.show error('[BuildWordList]' _)}
             end
         end
         Word
@@ -152,14 +159,71 @@ in
         fun {IsEndOfSentence Word}
             {List.member {List.last Word} BreakListNumber}
         end
-
+        fun {ContainsSentenceBreakSymbol Word}
+            {List.some % tests for all BreakSymbols
+                BreakListNumber
+                fun {$ BreakWord} % a word is fully made of BreakWord
+                    {List.some
+                        Word
+                        fun {$ Char}
+                            Char == BreakWord
+                        end
+                    }
+                end
+            }
+        end
+        fun {Split Word}
+            proc {Loop Word Token TokenTail Tokens}
+                case Word
+                    of CurrChar|OtherChars then TailTokens in
+                        if {List.member CurrChar BreakListNumber} then NextToken in
+                            if {IsDet Token} then
+                                TokenTail = nil
+                                Tokens = Token|TailTokens
+                                {Loop OtherChars NextToken NextToken TailTokens}
+                            else
+                                {Loop OtherChars Token TokenTail Tokens}
+                            end
+                        else X in
+                            CurrChar|X = TokenTail
+                            {Loop OtherChars Token X Tokens}
+                        end
+                    [] nil then
+                        TokenTail = nil
+                        if Token \= nil then % in the case "bon..." -> ["bon" nil]
+                            Tokens = Token|nil
+                        else
+                            Tokens = nil
+                        end
+                    [] _ then
+                        {System.show error('[BuildSentenceList][Loop]' _)}
+                end
+            end
+            Tokens
+        in
+            local Token in
+                Tokens = {Loop Word Token Token}
+            end
+        end
         % builds the list of sentences
         proc {Loop Line Sentence SentenceTail Sentences}
             case Line
                 of CurrWord|OtherWords then TailSentences in
-                    if {IsEndOfSentence CurrWord} then NextSentence in
-                        SentenceTail = nil
-                        Sentences = Sentence|TailSentences
+                    % Must deal with words that look like -> "Hello...I..am..happy.."
+                    % "Hello" is the end of the current sentence
+                    % Splitting the word -> [[Hello][I][am][happy]] (each token is a sentence)
+                    if {ContainsSentenceBreakSymbol CurrWord} then Tokens NextSentence in
+                        Tokens = {Split CurrWord}
+                        {System.show d(word {String.toAtom CurrWord})}
+                        for T in Tokens do
+                            {System.show d(tokens {String.toAtom T})}
+                        end
+                        if Tokens \= nil then % no tokens -> split of "..."
+                            SentenceTail = Tokens.1|nil
+                            Sentences = {List.append Sentence Tokens.2}|TailSentences
+                        else
+                            {Loop OtherWords Sentence SentenceTail Sentences}
+                        end
                         {Loop OtherWords NextSentence NextSentence TailSentences}
                     else X in
                         CurrWord|X = SentenceTail
@@ -169,7 +233,7 @@ in
                     SentenceTail = nil
                     Sentences = Sentence|nil
                 [] _ then
-                    {System.show error([BuildSentenceList] _)}
+                    {System.show error('[BuildSentenceList][Loop]' _)}
             end
         end
         Sentence
@@ -189,9 +253,6 @@ in
     %     ToReplace = [('&amp;' '&')]
     %     ToRemove = ['#' ':' ',' ';']
     %     FinalMark = ['?' '!' '.' '-']
-    % in
-
-    % end
 
     % {Regex.groups +MATCH +TXT ?GROUPS}
 end
