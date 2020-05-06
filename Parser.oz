@@ -16,7 +16,6 @@ define
     SentenceToDictionary
 
     % Global variables
-    PredictionDictionaryPort
     ToReplace
     ToRemove
     BreakList
@@ -44,36 +43,24 @@ in
 
     % ToReplace = {ConvertAtomsToStrings [t('&amp;' '&')]}
     ToRemove = {ConvertAtomsToStrings ['']}
-    PredictionDictionaryPort = {PredictionDictionary.createDictionary}
     BreakList = ['.' ':' '-' '(' ')' '[' ']' '{' '}' ',' '\'' '!' '?'] % TODO should handle parentheses handling with subfunctions
     BreakListNumber = {List.map BreakList fun {$ X} {Atom.toString X}.1 end}
 
 % ------------------------------ MODULE LOGIC ------------------------------
 
-    proc {ThreadedParseStream Stream }
-        proc {ParseStream}
-            for Line in Stream do SanitizedLine WordList SentenceList in
-                % {System.show {String.toAtom SanitizedLine}}
-                thread SanitizedLine = {SanitizeLine Line} end
-                thread WordList = {BuildWordList SanitizedLine} end
-                thread SentenceList = {BuildSentenceList WordList} end
-                {Browser.browse SentenceList}
-                for S in SentenceList do
-                    {System.show debug('SentenceList' 'NewSentence')}
-                    for W in S do
-                        {System.show debug('SentenceList' {String.toAtom W})}
-                    end
-                end
-                % for Sentence in SentenceList do
-                %     {SentenceToDictionary Sentence}
-                % end
+    proc {ThreadedParseStream Stream PredictionDictionaryPort}
+        for Line in Stream do SanitizedLine WordList SentenceList in
+            % {System.show {String.toAtom SanitizedLine}}
+            thread SanitizedLine = {SanitizeLine Line} end
+            thread WordList = {BuildWordList SanitizedLine} end
+            thread SentenceList = {BuildSentenceList WordList} end
+            for Sentence in SentenceList do
+                {SentenceToDictionary Sentence PredictionDictionaryPort}
             end
         end
-    in
-        thread {ParseStream} end
     end
 
-    proc {SentenceToDictionary Sentence}
+    proc {SentenceToDictionary Sentence PredictionDictionaryPort}
         proc {Loop Sentence PrevWord}
             case Sentence
                 of CurrWord|OtherWords then
@@ -214,10 +201,6 @@ in
                     % Splitting the word -> [[Hello][I][am][happy]] (each token is a sentence)
                     if {ContainsSentenceBreakSymbol CurrWord} then Tokens NextSentence in
                         Tokens = {Split CurrWord}
-                        {System.show d(word {String.toAtom CurrWord})}
-                        for T in Tokens do
-                            {System.show d(tokens {String.toAtom T})}
-                        end
                         if Tokens \= nil then % no tokens -> split of "..."
                             SentenceTail = Tokens.1|nil
                             Sentences = {List.append Sentence Tokens.2}|TailSentences
