@@ -14,11 +14,13 @@ define
     OnPress
 
     Handlers
+    PredictionDictionaryPort
 in
-    fun {StartWindow}
+    fun {StartWindow DictionaryPort}
         Stream
         Port = {NewPort Stream}
     in
+        PredictionDictionaryPort = DictionaryPort
         Handlers = {BuildWindow}
         thread {HandleCommands Stream} end
         Port
@@ -37,7 +39,7 @@ in
             title:"Frequency count"
             lr(
                 text(handle:HandleInputText width:28 height:5 background:white foreground:black wrap:word)
-                button(text:"Change" action:OnPress)
+                button(text:"Predict next" action:OnPress)
             )
             text(handle:HandleOutputText width:28 height:5 background:black foreground:white glue:w wrap:word)
             action:proc{$}{Application.exit 0} end % quit app gracefully on window closing
@@ -46,7 +48,6 @@ in
         MainWindow = {QTk.build Layout}
         {MainWindow show}
 
-        {HandleInputText tk(insert 'end' 'xd')}
         {HandleInputText bind(event:"<Control-s>" action:OnPress)} % You can also bind events
 
         handles(input:HandleInputText output:HandleOutputText)
@@ -55,9 +56,13 @@ in
     % events
     proc {OnPress}
         Inserted
+        TrimmedInserted
+        Next
     in
-        Inserted = {Handlers.input getText(p(1 0) 'end' $)} % example using coordinates to get text
-        {Handlers.output set(1:Inserted)} % you can get/set text this way too
+        Inserted = {Handlers.input getText(p(1 0) 'end' $)}
+        {String.token Inserted &\n TrimmedInserted _}
+        {Send PredictionDictionaryPort predict(word:{String.toAtom TrimmedInserted} next:Next)}
+        {Handlers.output set(1:Next)} % you can get/set text this way too
     end
 
     proc {HandleCommands Stream}
