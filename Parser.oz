@@ -142,10 +142,7 @@ in
     end
 
     fun {BuildSentenceList Line}
-        % determines whether a word marks the end the sentence
-        fun {IsEndOfSentence Word}
-            {List.member {List.last Word} BreakListNumber}
-        end
+        % Checks if any character of a word is a 'SentenceBreakSymbol'
         fun {ContainsSentenceBreakSymbol Word}
             {List.some % tests for all BreakSymbols
                 BreakListNumber
@@ -159,70 +156,130 @@ in
                 end
             }
         end
-        fun {Split Word}
-            proc {Loop Word Token TokenTail Tokens}
+        % Splits a "complex" word (containing 1+ 'SentenceBreakSymbol') into tokens
+        % The resulting tokens are used for advanced sentence building
+        proc {Split Word ?FirstToken ?TokensWithoutLast ?LastToken}
+            proc {Loop Word Token TokenTail TokensWithoutLast}
                 case Word
-                    of CurrChar|OtherChars then TailTokens in
+                    of CurrChar|OtherChars then TokensWithoutLastTail in
                         if {List.member CurrChar BreakListNumber} then NextToken in
+                            % CurrChar is a sentenceBreakSymbol that "splits" the current token
                             if {IsDet Token} then
                                 TokenTail = nil
-                                Tokens = Token|TailTokens
-                                {Loop OtherChars NextToken NextToken TailTokens}
-                            else
-                                {Loop OtherChars Token TokenTail Tokens}
+                                TokensWithoutLast = Token|TokensWithoutLastTail
+                                {Loop OtherChars NextToken NextToken TokensWithoutLastTail}
+                            else % not currently building a token, skipping sentenceBreakSymbol
+                                {Loop OtherChars Token TokenTail TokensWithoutLast}
                             end
                         else X in
                             CurrChar|X = TokenTail
-                            {Loop OtherChars Token X Tokens}
+                            {Loop OtherChars Token X TokensWithoutLast}
                         end
                     [] nil then
                         TokenTail = nil
-                        if Token \= nil then % in the case "bon..." -> ["bon" nil]
-                            Tokens = Token|nil
-                        else
-                            Tokens = nil
+                        TokensWithoutLast = nil
+                        if Token \= nil then
+                            LastToken = Token
+                        else % Token == nil when the word ends with 1+ sentenceBreakSymbol
+                            LastToken = nil
                         end
                     [] _ then
                         {System.show error('[BuildSentenceList][Loop]' _)}
                 end
             end
-            Tokens
         in
             local Token in
-                Tokens = {Loop Word Token Token}
+                {Loop Word Token Token TokensWithoutLast}
+            end
+            if {List.member Word.1 BreakListNumber} then
+                FirstToken = nil
+            else
+                FirstToken = TokensWithoutLast.1
             end
         end
+
+        % Receives the current sentence parsing context
+        %   -> Sentence SentenceTail Sentences
+        % And the new context
+        %   -> NewSentence NewSentenceTail NewSentencesTail
+        % Might modify the current context to end a sentence
+        % Might modify the new context to start a new sentence
+        % Is given a complex 'Word' that might:
+        %              end the current sentence
+        %    AND/OR    start a new sentence
+        %    AND/OR    embed other word that are considered as whole sentences (not implemented yet)
+        proc {HandleBreakSymbol Word Sentence SentenceTail Sentences NewSentence NewSentenceTail NewSentencesTail}
+            FirstToken TokensWithoutLast LastToken
+        in
+            {Split Word FirstToken TokensWithoutLast LastToken}
+
+            % Should deal with 'TokensWithoutLast' but that make it 2^3 branches..
+            % Using a regex would make it easier to manipulate/read
+            case FirstToken#LastToken
+                of nil#nil then % no tokens -> '...' or '..word..'
+                    if {IsDet Sentence} then
+                        SentenceTail = nil
+                        Sentences = Sentence|NewSentencesTail
+                    else
+                        Sentences = NewSentencesTail
+                    end
+                [] F#nil then
+                    SentenceTail = FirstToken|nil
+                    Sentences = Sentence|NewSentencesTail
+                [] nil#L then
+                    if {IsDet Sentence} then
+                        SentenceTail = nil
+                        NewSentence = LastToken|NewSentenceTail
+                        Sentences = Sentence|NewSentencesTail
+                    else
+                        NewSentence = LastToken|NewSentenceTail
+                        Sentences = NewSentencesTail
+                    end
+                [] F#L then
+                    SentenceTail = FirstToken|nil
+                    NewSentence = LastToken|NewSentenceTail
+                    Sentences = Sentence|NewSentencesTail
+            end
+        end
+
         % builds the list of sentences
         proc {Loop Line Sentence SentenceTail Sentences}
             case Line
-                of CurrWord|OtherWords then TailSentences in
+                of CurrWord|OtherWords then
                     % Must deal with words that look like -> "Hello...I..am..happy.."
-                    % "Hello" is the end of the current sentence
-                    % Splitting the word -> [[Hello][I][am][happy]] (each token is a sentence)
-                    if {ContainsSentenceBreakSymbol CurrWord} then Tokens NextSentence in
-                        Tokens = {Split CurrWord}
-                        if Tokens \= nil then % no tokens -> split of "..."
-                            SentenceTail = Tokens.1|nil
-                            Sentences = {List.append Sentence Tokens.2}|TailSentences
-                        else
-                            {Loop OtherWords Sentence SentenceTail Sentences}
+                    if {ContainsSentenceBreakSymbol CurrWord} then
+                        NewSentence NewSentenceTail NewSentencesTail
+                    in
+                        % might modify: Sentence SentenceTail Sentences
+                        % might create: Sentence SentenceTail Sentences
+                        {HandleBreakSymbol
+                            CurrWord Sentence SentenceTail Sentences % current
+                            NewSentence NewSentenceTail NewSentencesTail} % new
+                        if {IsDet NewSentence} then
+                            {Loop OtherWords NewSentence NewSentenceTail NewSentencesTail}
+                        else FreshSentence in
+                            {Loop OtherWords FreshSentence FreshSentence NewSentencesTail}
                         end
-                        {Loop OtherWords NextSentence NextSentence TailSentences}
                     else X in
                         CurrWord|X = SentenceTail
                         {Loop OtherWords Sentence X Sentences}
                     end
                 [] nil then
                     SentenceTail = nil
+                    if Sentence == nil then
+                        Sentences = nil
+                    else
                     Sentences = Sentence|nil
+                    end
                 [] _ then
                     {System.show error('[BuildSentenceList][Loop]' _)}
             end
         end
-        Sentence
-        Sentences
+        SentencesOut
     in
-        Sentences = {Loop Line Sentence Sentence}
+        local Sentence in
+            SentencesOut = {Loop Line Sentence Sentence}
+        end
     end
 
     % unhandled cases:
