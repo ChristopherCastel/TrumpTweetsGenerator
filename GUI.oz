@@ -13,6 +13,7 @@ define
 
     OnPress
 
+    PredictionRange = 3
     Handlers
     PredictionDictionaryPort
 in
@@ -34,6 +35,7 @@ in
         % handlers
         HandleInputText
         HandleOutputText
+        HandlePredictionButtons
     in
         Layout = td(
             title:"Frequency count"
@@ -42,6 +44,9 @@ in
                 button(text:"Predict next" action:OnPress)
             )
             text(handle:HandleOutputText width:28 height:5 background:black foreground:white glue:w wrap:word)
+            lr(
+                handle:HandlePredictionButtons
+            )
             action:proc{$}{Application.exit 0} end % quit app gracefully on window closing
         )
 
@@ -50,19 +55,22 @@ in
 
         {HandleInputText bind(event:"<Control-s>" action:OnPress)} % You can also bind events
 
-        handles(input:HandleInputText output:HandleOutputText)
+        handlers(
+            input:HandleInputText
+            output:HandleOutputText
+        )
     end
 
     % events
     proc {OnPress}
         Inserted
         TrimmedInserted
-        Next
+        PredictedWords
     in
         Inserted = {Handlers.input getText(p(1 0) 'end' $)}
         {String.token Inserted &\n TrimmedInserted _}
-        {Send PredictionDictionaryPort predict(word:{String.toAtom TrimmedInserted} next:Next)}
-        {Handlers.output set(1:Next)} % you can get/set text this way too
+        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom TrimmedInserted} predictedWords:PredictedWords)}
+        {Handlers.output set(1:PredictedWords.1)} % TODO: upgrade to buttons
     end
 
     proc {HandleCommands Stream}

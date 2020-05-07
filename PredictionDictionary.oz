@@ -38,25 +38,45 @@ in
         end
     end
 
-    fun {PredictNext Word}
-        fun {MaxCount L BestWord BestCount}
-            case L
-                of (Word#Count)|Xr then
-                    if Count > BestCount then
-                        {MaxCount Xr Word Count}
-                    else
-                        {MaxCount Xr BestWord BestCount}
+    fun {PredictNext Word Range}
+        % Returns N (or less) best words in the given dictionary
+        % Iterates N times or until the initial entries list is fully depleted
+        % When one best word is found, NextEntries holds the current entries without the best word
+        proc {GetNBestWords Entries NextEntries NextEntriesTail ?BestWords BestWord N}
+            case Entries
+                of (Word#Count)|OtherEntries then
+                    % found candidate best word
+                    if (Count >= BestWord.2) then Tail in
+                        % makes sure to omit the one best word from the NextEntries
+                        if BestWord.1 \= null then
+                            NextEntriesTail = BestWord|Tail
+                            {GetNBestWords OtherEntries NextEntries Tail BestWords (Word#Count) N}
+                        else
+                            {GetNBestWords OtherEntries NextEntries NextEntriesTail BestWords (Word#Count) N}
+                        end
+                    else Tail in
+                        NextEntriesTail = (Word#Count)|Tail
+                        {GetNBestWords OtherEntries NextEntries Tail BestWords BestWord N}
                     end
-                [] nil then BestWord
+                [] nil then
+                    % no best word found (entries is empty) or found enough bestwords
+                    if BestWord.1 == null orelse N =< 0 then
+                        BestWords = nil
+                    else BestWordsTail FreshNextEntries in
+                        NextEntriesTail = nil
+                        BestWords = BestWord.1|BestWordsTail
+                        {GetNBestWords NextEntries FreshNextEntries FreshNextEntries BestWordsTail (null#~1) (N-1)}
+                    end
             end
         end
     in
         if {Not {Dictionary.member DictionaryWords Word}} then
             null
-        else DictionaryCounts Entries in
-            {Dictionary.get DictionaryWords Word DictionaryCounts}
-            {Dictionary.entries DictionaryCounts Entries}
-            {MaxCount Entries null ~1}
+        else DictionaryCounts Entries NextEntries NBestWords in
+            DictionaryCounts = {Dictionary.get DictionaryWords Word}
+            Entries = {Dictionary.entries DictionaryCounts}
+            {GetNBestWords Entries NextEntries NextEntries NBestWords (null#~1) Range}
+            NBestWords
         end
     end
 
@@ -66,8 +86,8 @@ in
                 % {System.show save({String.toAtom Word} ' ' {String.toAtom Next})}
                 {Save {String.toAtom Word} {String.toAtom Next}}
                 {HandleCommands T}
-            [] predict(word:Word next:Next)|T then
-                Next = {PredictNext Word}
+            [] predict(range:Range word:Word predictedWords:Next)|T then
+                Next = {PredictNext Word Range}
                 {HandleCommands T}
             [] _|T then
                 {System.show error('[Prediction dictionary]' 'Unknown command')}
