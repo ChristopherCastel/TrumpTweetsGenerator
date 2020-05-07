@@ -251,7 +251,7 @@ in
                         NewSentence NewSentenceTail NewSentencesTail
                     in
                         % might modify: Sentence SentenceTail Sentences
-                        % might create: Sentence SentenceTail Sentences
+                        % might create: NewSentence NewSentenceTail NewSentencesTail
                         {HandleBreakSymbol
                             CurrWord Sentence SentenceTail Sentences % current
                             NewSentence NewSentenceTail NewSentencesTail} % new
@@ -269,7 +269,7 @@ in
                     if Sentence == nil then
                         Sentences = nil
                     else
-                    Sentences = Sentence|nil
+                        Sentences = Sentence|nil
                     end
                 [] _ then
                     {System.show error('[BuildSentenceList][Loop]' _)}
