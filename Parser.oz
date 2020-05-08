@@ -61,20 +61,23 @@ in
     end
 
     proc {SentenceToDictionary Sentence PredictionDictionaryPort}
-        proc {Loop Sentence PrevWord}
+        proc {Loop Sentence PrevPrevWord PrevWord}
             case Sentence
                 of CurrWord|OtherWords then
                     TailSentenceOut
                 in
                     if PrevWord \= null then
                         {Send PredictionDictionaryPort save(word:PrevWord next:CurrWord)}
+                        if PrevPrevWord \= null then
+                            {Send PredictionDictionaryPort save(word:{List.append {List.append PrevWord " "} PrevWord} next:CurrWord)}
+                        end
                     end
-                    {Loop OtherWords CurrWord}
+                    {Loop OtherWords PrevWord CurrWord}
                 [] nil then skip
             end
         end
     in
-        {Loop Sentence null}
+        {Loop Sentence null null}
     end
 
     fun {BuildWordList Line}
