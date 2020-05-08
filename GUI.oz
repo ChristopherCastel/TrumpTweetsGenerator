@@ -32,26 +32,50 @@ in
         % handlers
         HandleInputText
         HandleOutputText
+        HandlePred1gLabel
+        HandlePred2gLabel
         Handle1GramButtons
         Handle2GramButtons
     in
         Layout = td(
-            title:"Frequency count"
-            lr(
+            title:"Fake Trump tweet GEn3r4t0r"
+            td(
+                padx:1
+                pady:1
+                lr(
+                    padx:10
+                    pady:10
+                    td(
+                        label(text:"Start of sentence" glue:we)
+                        text(handle:HandleInputText width:20 height:1 background:white foreground:black wrap:word glue:we)
+                    )
+                    button(text:"Predict next" action:OnPress glue:ns padx:5)
+                )
+                td(
+                    padx:10
+                    pady:10
+                    lr(
+                        label(handle:HandlePred1gLabel glue:ns)
+                        placeholder(
+                            handle:Handle1GramButtons
+                            glue:nswe
+                        )
+                        glue:nswe
+                    )
+                    lr(
+                        label(handle:HandlePred2gLabel glue:ns)
+                        placeholder(
+                            handle:Handle2GramButtons
+                            glue:nswe
+                        )
+                        glue:nswe
+                    )
+                    glue:nswe
+                )
+                text(
+                    init:"Waiting for a prediction.." handle:HandleOutputText width:100 height:10 background:black foreground:white wrap:word glue:nswe
+                )
                 glue:nswe
-                text(handle:HandleInputText width:28 height:5 background:white foreground:black glue:nswe wrap:word)
-                button(text:"Predict next" action:OnPress glue:nswe)
-            )
-            text(
-                handle:HandleOutputText width:28 height:5 background:black foreground:white glue:nswe wrap:word
-            )
-            placeholder(
-                glue:nswe
-                handle:Handle1GramButtons
-            )
-            placeholder(
-                glue:nswe
-                handle:Handle2GramButtons
             )
             action:proc{$}{Application.exit 0} end % quit app gracefully on window closing
         )
@@ -66,6 +90,8 @@ in
             output:HandleOutputText
             prediction1GramButtons:Handle1GramButtons
             prediction2GramButtons:Handle2GramButtons
+            pred1gLabel:HandlePred1gLabel
+            pred2gLabel:HandlePred2gLabel
         )
     end
 
@@ -77,6 +103,7 @@ in
                 of Word|OtherWords then
                     NewContainer
                     WordString = {Atom.toString Word}
+                    Input2gram = {List.append {List.append @PreviousWord " "} WordString}
                     proc {OnPress}
                         PredictedWords1Gram
                         PredictedWords2Gram
@@ -84,20 +111,20 @@ in
                         OutputAfter
                     in
                         {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom WordString} predictedWords:PredictedWords1Gram)}
-                        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom {List.append {List.append @PreviousWord " "} WordString}} predictedWords:PredictedWords2Gram)}
+                        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom Input2gram} predictedWords:PredictedWords2Gram)}
                         {Handlers.output get(1:OutputBefore)}
                         OutputAfter = OutputBefore#" "#Word
                         {Handlers.output set(
                             1:OutputAfter
                         )}
-                        PreviousWord := {List.last {String.tokens WordString " ".1}}
+                        PreviousWord := WordString
                         {GenerateButtons PredictedWords1Gram 1}
                         {GenerateButtons PredictedWords2Gram 2}
                     end
                 in
                     NewContainer = {Tuple.append
                         CurrContainer
-                        lr(button(text:WordString action:OnPress glue:nswe))
+                        lr(button(text:WordString action:OnPress ipadx:5 ipady:5 glue:nswe))
                     }
                     {FillContainer OtherWords NewContainer}
                 [] nil then CurrContainer
@@ -112,7 +139,7 @@ in
                 )}
             else
                 {Handlers.prediction1GramButtons set(
-                    label(init:"1G No prediction found :/")
+                    label(init:"No prediction found :/")
                 )}
             end
         else
@@ -123,7 +150,7 @@ in
                 )}
             else
                 {Handlers.prediction2GramButtons set(
-                    label(init:"2G No prediction found :/")
+                    label(init:"No prediction found :/")
                 )}
             end
         end
@@ -131,19 +158,48 @@ in
 
     % events
     proc {OnPress}
-        Inserted
-        TrimmedInserted
+        InsertedString
+        TrimmedInsertedString
         PredictedWords
     in
-        Inserted = {Handlers.input getText(p(1 0) 'end' $)}
-        {String.token Inserted &\n TrimmedInserted _}
-        {Handlers.output set(
-            1:TrimmedInserted
-        )}
-        PreviousWord := {List.last {String.tokens TrimmedInserted " ".1}}
-        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom TrimmedInserted} predictedWords:PredictedWords)}
-        % {Handlers.output set(1:PredictedWords.1)} % TODO: upgrade to buttons
-        {GenerateButtons PredictedWords 1}
-        {GenerateButtons PredictedWords 2}
+        InsertedString = {Handlers.input getText(p(1 0) 'end' $)}
+        {String.token InsertedString &\n TrimmedInsertedString _}
+
+        local
+            Words = {String.tokens TrimmedInsertedString " ".1}
+            Length = {List.length Words}
+            IsInputValid
+        in
+            case Length
+                of 1 then PredictedWords in
+                    IsInputValid = true
+                    {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom TrimmedInsertedString} predictedWords:PredictedWords)}
+                    PreviousWord := TrimmedInsertedString
+                    {Handlers.output set(
+                        1:TrimmedInsertedString
+                    )}
+                    {GenerateButtons PredictedWords 1}
+                    {GenerateButtons PredictedWords 2}
+                [] 2 then OutputText PredictedWords1gram PredictedWords2gram in
+                    IsInputValid = true
+                    OutputText = {List.append {List.append Words.1 " "} Words.2.1}
+                    {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom Words.1} predictedWords:PredictedWords1gram)}
+                    {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom OutputText} predictedWords:PredictedWords2gram)}
+                    PreviousWord := Words.2.1
+                    {Handlers.output set(
+                        1:OutputText
+                    )}
+                    {GenerateButtons PredictedWords1gram 1}
+                    {GenerateButtons PredictedWords2gram 2}
+                else
+                    IsInputValid = false
+            end
+            if IsInputValid then
+                {Handlers.pred1gLabel set(1:"(1 gram)")}
+                {Handlers.pred2gLabel set(1:"(2 gram)")}
+            else
+                {Handlers.output set(1:"Enter either 1 or 2 words please")}
+            end
+        end
     end
 end
