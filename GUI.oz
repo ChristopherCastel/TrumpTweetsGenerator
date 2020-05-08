@@ -11,22 +11,17 @@ define
     StartWindow
     BuildWindow
     GenerateButtons
-    HandleCommands
 
     OnPress
 
     PredictionRange = 10
     Handlers
     PredictionDictionaryPort
+    PreviousWord = {NewCell null}
 in
-    fun {StartWindow DictionaryPort}
-        Stream
-        Port = {NewPort Stream}
-    in
+    proc {StartWindow DictionaryPort}
         PredictionDictionaryPort = DictionaryPort
         Handlers = {BuildWindow}
-        thread {HandleCommands Stream} end
-        Port
     end
 
     fun {BuildWindow}
@@ -37,7 +32,8 @@ in
         % handlers
         HandleInputText
         HandleOutputText
-        HandlePredictionButtons
+        Handle1GramButtons
+        Handle2GramButtons
     in
         Layout = td(
             title:"Frequency count"
@@ -51,7 +47,11 @@ in
             )
             placeholder(
                 glue:nswe
-                handle:HandlePredictionButtons
+                handle:Handle1GramButtons
+            )
+            placeholder(
+                glue:nswe
+                handle:Handle2GramButtons
             )
             action:proc{$}{Application.exit 0} end % quit app gracefully on window closing
         )
@@ -64,50 +64,68 @@ in
         handlers(
             input:HandleInputText
             output:HandleOutputText
-            predictionButtons:HandlePredictionButtons
+            prediction1GramButtons:Handle1GramButtons
+            prediction2GramButtons:Handle2GramButtons
         )
     end
 
     % add occurences next to word (button) ?
-    proc {GenerateButtons PredictedWords}
+    proc {GenerateButtons PredictedWords Gram}
         Container
         fun {FillContainer Words CurrContainer}
             case Words
                 of Word|OtherWords then
                     NewContainer
-                    WordAtom = {Atom.toString Word}
+                    WordString = {Atom.toString Word}
                     proc {OnPress}
-                        PredictedWords
+                        PredictedWords1Gram
+                        PredictedWords2Gram
                         OutputBefore
                         OutputAfter
                     in
-                        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom WordAtom} predictedWords:PredictedWords)}
+                        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom WordString} predictedWords:PredictedWords1Gram)}
+                        {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom {List.append {List.append @PreviousWord " "} WordString}} predictedWords:PredictedWords2Gram)}
                         {Handlers.output get(1:OutputBefore)}
                         OutputAfter = OutputBefore#" "#Word
                         {Handlers.output set(
                             1:OutputAfter
                         )}
-                        {GenerateButtons PredictedWords}
+                        PreviousWord := {List.last {String.tokens WordString " ".1}}
+                        {GenerateButtons PredictedWords1Gram 1}
+                        {GenerateButtons PredictedWords2Gram 2}
                     end
                 in
                     NewContainer = {Tuple.append
                         CurrContainer
-                        lr(button(text:WordAtom action:OnPress glue:nswe))
+                        lr(button(text:WordString action:OnPress glue:nswe))
                     }
                     {FillContainer OtherWords NewContainer}
                 [] nil then CurrContainer
             end
         end
     in
-        if PredictedWords \= null then
-            Container = {FillContainer PredictedWords lr()}
-            {Handlers.predictionButtons set(
-                Container
-            )}
+        if Gram == 1 then
+            if PredictedWords \= null then
+                Container = {FillContainer PredictedWords lr()}
+                {Handlers.prediction1GramButtons set(
+                    Container
+                )}
+            else
+                {Handlers.prediction1GramButtons set(
+                    label(init:"1G No prediction found :/")
+                )}
+            end
         else
-            {Handlers.predictionButtons set(
-                label(init:"No prediction found :/")
-            )}
+            if PredictedWords \= null then
+                Container = {FillContainer PredictedWords lr()}
+                {Handlers.prediction2GramButtons set(
+                    Container
+                )}
+            else
+                {Handlers.prediction2GramButtons set(
+                    label(init:"2G No prediction found :/")
+                )}
+            end
         end
     end
 
@@ -122,18 +140,10 @@ in
         {Handlers.output set(
             1:TrimmedInserted
         )}
+        PreviousWord := {List.last {String.tokens TrimmedInserted " ".1}}
         {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom TrimmedInserted} predictedWords:PredictedWords)}
         % {Handlers.output set(1:PredictedWords.1)} % TODO: upgrade to buttons
-        {GenerateButtons PredictedWords}
-    end
-
-    proc {HandleCommands Stream}
-        case Stream
-            of lol|T then
-                {HandleCommands T}
-            [] _|T then
-                {System.show error('[GUI]' 'Unknown command')}
-                {HandleCommands T}
-        end
+        {GenerateButtons PredictedWords 1}
+        {GenerateButtons PredictedWords 2}
     end
 end

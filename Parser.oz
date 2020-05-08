@@ -69,7 +69,7 @@ in
                     if PrevWord \= null then
                         {Send PredictionDictionaryPort save(word:PrevWord next:CurrWord)}
                         if PrevPrevWord \= null then
-                            {Send PredictionDictionaryPort save(word:{List.append {List.append PrevWord " "} PrevWord} next:CurrWord)}
+                            {Send PredictionDictionaryPort save(word:{List.append {List.append PrevPrevWord " "} PrevWord} next:CurrWord)}
                         end
                     end
                     {Loop OtherWords PrevWord CurrWord}
