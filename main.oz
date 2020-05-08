@@ -10,9 +10,8 @@ define
     Show = System.show % macro definition
     LaunchParsing
 
-    FilesNumber = 208
+    FilesNumber = 1
     PredictionDictionaryPort = {PredictionDictionary.createDictionary}
-    GUIPort
 in
     % Parses all files and blocks main thread execution until finished
     proc {LaunchParsing N}
@@ -23,7 +22,7 @@ in
                 {Wait X}
             end
         end
-        fun {GenerateParsers Statements FileNumber}
+        fun {GenerateParsers Statements FileNumber} % one parsed per file
             if FileNumber > N then
                 Statements
             else Statement in
@@ -42,5 +41,5 @@ in
     end
 
     {LaunchParsing FilesNumber}
-    GUIPort = {GUI.startWindow PredictionDictionaryPort}
+    {GUI.startWindow PredictionDictionaryPort}
 end
