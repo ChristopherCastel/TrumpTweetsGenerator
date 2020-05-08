@@ -5,10 +5,10 @@ import
     PredictionDictionary
     % Regex at 'x-oz://contrib/regex'
 export
-    parseStream:ThreadedParseStream
+    parseStream:ParseStream
 define
     % Functions
-    ThreadedParseStream
+    ParseStream
     SanitizeLine
     ConvertAtomsToStrings
     BuildWordList
@@ -48,12 +48,12 @@ in
 
 % ------------------------------ MODULE LOGIC ------------------------------
 
-    proc {ThreadedParseStream Stream PredictionDictionaryPort}
+    proc {ParseStream Stream PredictionDictionaryPort}
         for Line in Stream do SanitizedLine WordList SentenceList in
             % {System.show {String.toAtom SanitizedLine}}
-            thread SanitizedLine = {SanitizeLine Line} end
-            thread WordList = {BuildWordList SanitizedLine} end
-            thread SentenceList = {BuildSentenceList WordList} end
+            SanitizedLine = {SanitizeLine Line}
+            WordList = {BuildWordList SanitizedLine}
+            SentenceList = {BuildSentenceList WordList}
             for Sentence in SentenceList do
                 {SentenceToDictionary Sentence PredictionDictionaryPort}
             end

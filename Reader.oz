@@ -1,26 +1,32 @@
 functor
 import
     Open
+    System
 export
-    readfile:ThreadedReadFile
+    readFiles:ReadFiles
 define
     class TextFile from Open.file Open.text end
-    ThreadedReadFile
+    ReadFiles
 in
     % Reads the whole file and returns a stream of lines
-    fun {ThreadedReadFile Filename}
-        Filereader = {New TextFile init(name:Filename)}
-        fun {BuildStream}
-            Line = {Filereader getS($)}
+    fun {ReadFiles CurrentFileIndex End} % reads whole file
+        FileReader
+        fun {ReadFileLoop} % read file line by line
+            Line = {FileReader getS($)}
         in
             if Line == false then
-                {Filereader close}
-                nil
+                {FileReader close}
+                {ReadFiles (CurrentFileIndex + 1) End}
             else
-                Line|{BuildStream}
+                Line|{ReadFileLoop}
             end
         end
     in
-        thread {BuildStream} end
+        if CurrentFileIndex > End then
+            nil
+        else
+            FileReader = {New TextFile init(name:'tweets/part_'#CurrentFileIndex#'.txt')}
+            {ReadFileLoop}
+        end
     end
 end
