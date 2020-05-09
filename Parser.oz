@@ -41,6 +41,7 @@ in
 
     % %  = {ConvertAtomsToStrings [t('&amp;' '&')]}
     % ToRemove = {ConvertAtomsToStrings ['']}
+    % ToReplace = {ConvertAtomsToStrings ['']}
     BreakList = ['.' ':' '-' '(' ')' '[' ']' '{' '}' ',' '\'' '!' '?'] % TODO should handle parentheses handling with subfunctions
     BreakListNumber = {List.map BreakList fun {$ X} {Atom.toString X}.1 end}
 
@@ -117,7 +118,7 @@ in
                         end
                         {Loop TailLine NextWord NextWord TailLineOut}
                     else X in
-                        CurrChar|X = WordTail
+                        {Char.toLower CurrChar}|X = WordTail
                         {Loop TailLine Word X LineOut}
                     end
                 [] nil then

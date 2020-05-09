@@ -156,22 +156,24 @@ in
     proc {OnPress}
         InsertedString
         TrimmedInsertedString
+        LowerCaseInsertedString
     in
         InsertedString = {Handlers.input getText(p(1 0) 'end' $)}
         {String.token InsertedString &\n TrimmedInsertedString _}
+        LowerCaseInsertedString = {Map TrimmedInsertedString fun {$ C} {Char.toLower C} end}
 
         local
-            Words = {String.tokens TrimmedInsertedString " ".1}
+            Words = {String.tokens LowerCaseInsertedString " ".1}
             Length = {List.length Words}
             IsInputValid
         in
             case Length
                 of 1 then PredictedWords in
                     IsInputValid = true
-                    {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom TrimmedInsertedString} predictedWords:PredictedWords)}
-                    PreviousWord := TrimmedInsertedString
+                    {Send PredictionDictionaryPort predict(range:PredictionRange word:{String.toAtom LowerCaseInsertedString} predictedWords:PredictedWords)}
+                    PreviousWord := LowerCaseInsertedString
                     {Handlers.output set(
-                        1:TrimmedInsertedString
+                        1:LowerCaseInsertedString
                     )}
                     {GenerateButtons PredictedWords 1}
                     {GenerateButtons PredictedWords 2}
