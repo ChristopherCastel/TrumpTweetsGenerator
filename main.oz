@@ -1,7 +1,6 @@
 functor
 import
     System
-    Browser
     Reader
     Parser
     PredictionDictionary
@@ -15,7 +14,6 @@ define
     MaxParsingThreads = 16
     FilesNumber = 208
     PredictionDictionaryPort = {PredictionDictionary.createDictionary}
-    Test
 in
     proc {LaunchBoundedParsing N}
 
@@ -73,6 +71,7 @@ in
     in
         local TimeStart
             TimeStart = {Time.time}
+            StdOut
         in
             {Show 'Parsing...'}
             local

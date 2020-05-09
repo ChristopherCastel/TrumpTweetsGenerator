@@ -1,8 +1,6 @@
 functor
 import
     System
-    Browser
-    PredictionDictionary
     % Regex at 'x-oz://contrib/regex'
 export
     parseStream:ParseStream
@@ -16,8 +14,8 @@ define
     SentenceToDictionary
 
     % Global variables
-    ToReplace
-    ToRemove
+    % ToReplace
+    % ToRemove
     BreakList
     BreakListNumber
 in
@@ -41,8 +39,8 @@ in
 
 % ---------------------------------- INIT ----------------------------------
 
-    % ToReplace = {ConvertAtomsToStrings [t('&amp;' '&')]}
-    ToRemove = {ConvertAtomsToStrings ['']}
+    % %  = {ConvertAtomsToStrings [t('&amp;' '&')]}
+    % ToRemove = {ConvertAtomsToStrings ['']}
     BreakList = ['.' ':' '-' '(' ')' '[' ']' '{' '}' ',' '\'' '!' '?'] % TODO should handle parentheses handling with subfunctions
     BreakListNumber = {List.map BreakList fun {$ X} {Atom.toString X}.1 end}
 
@@ -91,8 +89,6 @@ in
         proc {Loop Sentence PrevPrevWord PrevWord}
             case Sentence
                 of CurrWord|OtherWords then
-                    TailSentenceOut
-                in
                     if PrevWord \= null then
                         {Send PredictionDictionaryPort save(word:PrevWord next:CurrWord)}
                         if PrevPrevWord \= null then
@@ -320,7 +316,7 @@ in
     % A word is (\w+|\w+%|\w+'\w+|@\w+|#\w+|\w+´\w+)(\W+)
     % End a of a sentence if $2 in {-+, .+, (?|!)+}
     % fun {ParseLine Line}
-    %     ToReplace = [('&amp;' '&')]
+    %     %  = [('&amp;' '&')]
     %     ToRemove = ['#' ':' ',' ';']
     %     FinalMark = ['?' '!' '.' '-']
 

@@ -1,10 +1,7 @@
 functor
 import
     QTk at 'x-oz://system/wp/QTk.ozf'
-    System
     Application
-    OS
-    Browser
 export
     startWindow:StartWindow
 define
@@ -49,7 +46,7 @@ in
                         label(text:"Start of sentence" glue:we)
                         text(handle:HandleInputText width:20 height:1 background:white foreground:black wrap:word glue:we)
                     )
-                    button(text:"Predict next" action:OnPress glue:ns padx:5)
+                    button(text:"START" action:OnPress glue:ns padx:5)
                 )
                 td(
                     padx:10
@@ -95,7 +92,6 @@ in
         )
     end
 
-    % add occurences next to word (button) ?
     proc {GenerateButtons PredictedWords Gram}
         Container
         fun {FillContainer Words CurrContainer}
@@ -160,7 +156,6 @@ in
     proc {OnPress}
         InsertedString
         TrimmedInsertedString
-        PredictedWords
     in
         InsertedString = {Handlers.input getText(p(1 0) 'end' $)}
         {String.token InsertedString &\n TrimmedInsertedString _}

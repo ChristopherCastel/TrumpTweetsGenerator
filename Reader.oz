@@ -2,7 +2,6 @@ functor
 import
     System
     Open
-    System
 export
     readfile:ReadFile
 define
