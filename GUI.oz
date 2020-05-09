@@ -46,7 +46,7 @@ in
                         label(text:"Start of sentence" glue:we)
                         text(handle:HandleInputText width:20 height:1 background:white foreground:black wrap:word glue:we)
                     )
-                    button(text:"Predict next" action:OnPress glue:ns padx:5)
+                    button(text:"START" action:OnPress glue:ns padx:5)
                 )
                 td(
                     padx:10
