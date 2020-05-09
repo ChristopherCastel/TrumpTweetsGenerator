@@ -11,7 +11,7 @@ define
     % functions
     LaunchBoundedParsing
     % variables
-    MaxParsingThreads = 1
+    MaxParsingThreads = 16
     FilesNumber = 208
     PredictionDictionaryPort = {PredictionDictionary.createDictionary}
 in
@@ -44,11 +44,9 @@ in
                                 end
                                 {Loop OtherThreads NewThreadPoolTail JobsTail JobsUnits NewJobsUnitsTail}
                             [] nil then
-                                {Show barrier(ended 'waiting for all threads to end')}
                                 for U in JobsUnits do
                                     {Wait U}
                                 end
-                                {Show barrier(ended 'all threads ended')}
                         end
                 end
             end
@@ -85,7 +83,6 @@ in
                         UnitReader
                         UnitParser
                     in
-                        {Show job(FileNumber started)}
                         thread
                             Stream = {Reader.readfile 'tweets/part_'#FileNumber#'.txt'}
                             UnitReader = unit
@@ -96,7 +93,6 @@ in
                         end
                         {Wait UnitReader}
                         {Wait UnitParser}
-                        {Show job(FileNumber ended)}
                     end
                 {GenerateParsers Statement|Statements FileNumber+1}
             end
