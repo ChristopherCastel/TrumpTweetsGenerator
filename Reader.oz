@@ -1,6 +1,5 @@
 functor
 import
-    System
     Open
 export
     readfile:ReadFile
@@ -15,10 +14,10 @@ in
             Line = {Filereader getS($)}
         in
             if Line == false then
-                {FileReader close}
-                {ReadFiles (CurrentFileIndex + 1) End}
+                {Filereader close}
+                nil
             else
-                Line|{ReadFileLoop}
+                Line|{BuildStream}
             end
         end
     in

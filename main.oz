@@ -11,35 +11,69 @@ define
     % functions
     LaunchBoundedParsing
     % variables
-    MaxParsingThreads = 16
+    MaxParsingThreads = 1
     FilesNumber = 208
     PredictionDictionaryPort = {PredictionDictionary.createDictionary}
 in
     proc {LaunchBoundedParsing N}
 
-        proc {BuildExecutionTokens ?ExecutionTokens ?ExecutionTokensTail Current Boundary}
-            if Current > Boundary then Tail in
-                ExecutionTokens = ExecutionTokensTail
+        proc {BuildThreadPool ?ThreadPool ?ThreadPoolTail Current Boundary}
+            if Current > Boundary then
+                ThreadPoolTail = ThreadPool
             else Tail in
-                ExecutionTokens = token|Tail
-                {BuildExecutionTokens Tail ExecutionTokensTail Current+1 Boundary}
+                ThreadPool = {DedicatedThread}|Tail
+                {BuildThreadPool Tail ThreadPoolTail Current+1 Boundary}
             end
         end
 
-        proc {BoundedBarrier ExecutionTokens ExecutionTokensTail Jobs}
-            case ExecutionTokens
-                of ExecToken|TokenTail then
-                    case Jobs
-                        of Job|JobsTail then NewTail in
-                            thread
-                                {Job}
-                                ExecutionTokensTail = token|NewTail
-                            end
-                            {BoundedBarrier TokenTail NewTail JobsTail}
-                        [] nil then
-                            skip
-                    end
+        proc {BoundedBarrier ThreadPool ThreadPoolTail Jobs}
+            proc {Loop ThreadPool ThreadPoolTail Jobs JobsUnits JobsUnitsTail}
+                case ThreadPool
+                    of Thread|OtherThreads then
+                        case Jobs
+                            of Job|JobsTail then NewThreadPoolTail NewJobsUnitsTail in
+                                thread CurrJobUnit in
+                                    {Send Thread start(Job CurrJobUnit)}
+                                    if JobsTail \= nil then
+                                        JobsUnitsTail = CurrJobUnit|NewJobsUnitsTail
+                                    else
+                                        JobsUnitsTail = CurrJobUnit|nil
+                                    end
+                                    {Wait CurrJobUnit}
+                                    ThreadPoolTail = Thread|NewThreadPoolTail
+                                end
+                                {Loop OtherThreads NewThreadPoolTail JobsTail JobsUnits NewJobsUnitsTail}
+                            [] nil then
+                                {Show barrier(ended 'waiting for all threads to end')}
+                                for U in JobsUnits do
+                                    {Wait U}
+                                end
+                                {Show barrier(ended 'all threads ended')}
+                        end
+                end
             end
+        in
+            local JobsUnits in
+                {Loop ThreadPool ThreadPoolTail Jobs JobsUnits JobsUnits}
+            end
+        end
+
+        fun {DedicatedThread}
+            Stream
+            Port = {NewPort Stream}
+            proc {Loop Msg}
+                case Msg
+                    of start(Job Unit)|Tail then
+                        thread
+                            {Job}
+                            Unit = unit
+                        end
+                        {Loop Tail}
+                end
+            end
+        in
+            thread {Loop Stream} end
+            Port
         end
 
         fun {GenerateParsers Statements FileNumber} % one parsed per file
@@ -71,21 +105,22 @@ in
     in
         local TimeStart
             TimeStart = {Time.time}
-            StdOut
         in
             {Show 'Parsing...'}
+
             local
-                Parsers ExecutionTokens ExecutionTokensTail
+                Parsers ThreadPool ThreadPoolTail
             in
-                {BuildExecutionTokens ExecutionTokens ExecutionTokensTail 1 MaxParsingThreads}
+                {BuildThreadPool ThreadPool ThreadPoolTail 1 MaxParsingThreads}
                 Parsers = {GenerateParsers nil 1}
-                {BoundedBarrier ExecutionTokens ExecutionTokensTail Parsers}
+                {BoundedBarrier ThreadPool ThreadPoolTail Parsers}
             end
+
             {Show 'Parsing finished'}
             {Show time('Time' ({Time.time} - TimeStart) seconds)}
         end
     end
 
     {LaunchBoundedParsing FilesNumber}
-    % {GUI.startWindow PredictionDictionaryPort}
+    {GUI.startWindow PredictionDictionaryPort}
 end
