@@ -1,7 +1,6 @@
 functor
 import
     System
-    Browser
     Reader
     Parser
     PredictionDictionary
@@ -14,7 +13,6 @@ define
     ThreadsNumber = 16
 
     PredictionDictionaryPort = {PredictionDictionary.createDictionary}
-    Test
 in
     % Parses all files and blocks main thread execution until finished
     proc {LaunchParsing MaxFilesNumber MaxThreadsNumber}
@@ -44,12 +42,13 @@ in
     in
         local TimeStart
             TimeStart = {Time.time}
+            StdOut
         in
-            {System.show 'Parsing...'}
+            {Show stdout_info({VirtualString.toAtom "parsing "#FilesNumber#" files with "#ThreadsNumber#" threads..."})}
             Parsers = {GenerateParsers nil 0 0}
             {Barrier Parsers}
-            {System.show 'Parsing finished'}
-            {System.show time('Time' ({Time.time} - TimeStart) seconds)}
+            StdOut = stdout_info({VirtualString.toAtom "parsing finished in "#({Time.time} - TimeStart)#" seconds"})
+            {Show StdOut}
         end
     end
 

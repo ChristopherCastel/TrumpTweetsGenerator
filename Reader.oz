@@ -1,7 +1,6 @@
 functor
 import
     Open
-    System
 export
     readFiles:ReadFiles
 define
@@ -9,7 +8,7 @@ define
     ReadFiles
 in
     % Reads the whole file and returns a stream of lines
-    fun {ReadFiles CurrentFileIndex End} % reads whole file
+    fun {ReadFiles CurrentFileIndex End}
         FileReader
         fun {ReadFileLoop} % read file line by line
             Line = {FileReader getS($)}

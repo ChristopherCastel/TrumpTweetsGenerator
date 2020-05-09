@@ -1,8 +1,6 @@
 functor
 import
     System
-    OS
-    Browser
 export
     createDictionary:CreateDictionary
 define
@@ -59,7 +57,7 @@ in
                         {GetNBestWords OtherEntries NextEntries Tail BestWords BestWord N}
                     end
                 [] nil then
-                    % no best word found (entries is empty) or found enough bestwords
+                    % no best word found (entries is empty) or found enough best-words
                     if BestWord.1 == null orelse N =< 0 then
                         BestWords = nil
                     else BestWordsTail FreshNextEntries in
@@ -83,7 +81,7 @@ in
     proc {HandleCommands Stream}
         case Stream
             of save(word:Word next:Next)|T then
-                % {System.show save({String.toAtom Word} ' ' {String.toAtom Next})}
+                % {System.show stdout_debug({String.toAtom Word} ' ' {String.toAtom Next})}
                 {Save {String.toAtom Word} {String.toAtom Next}}
                 {HandleCommands T}
             [] predict(range:Range word:Word predictedWords:Next)|T then

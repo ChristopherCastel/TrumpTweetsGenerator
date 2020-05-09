@@ -1,10 +1,7 @@
 functor
 import
     QTk at 'x-oz://system/wp/QTk.ozf'
-    System
     Application
-    OS
-    Browser
 export
     startWindow:StartWindow
 define
@@ -95,7 +92,6 @@ in
         )
     end
 
-    % add occurences next to word (button) ?
     proc {GenerateButtons PredictedWords Gram}
         Container
         fun {FillContainer Words CurrContainer}
@@ -160,7 +156,6 @@ in
     proc {OnPress}
         InsertedString
         TrimmedInsertedString
-        PredictedWords
     in
         InsertedString = {Handlers.input getText(p(1 0) 'end' $)}
         {String.token InsertedString &\n TrimmedInsertedString _}
