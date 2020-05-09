@@ -14,8 +14,8 @@ define
     SentenceToDictionary
 
     % Global variables
-    % ToReplace
     % ToRemove
+    ToReplace
     BreakList
     BreakListNumber
 in
@@ -39,43 +39,14 @@ in
 
 % ---------------------------------- INIT ----------------------------------
 
-    % %  = {ConvertAtomsToStrings [t('&amp;' '&')]}
     % ToRemove = {ConvertAtomsToStrings ['']}
-    % ToReplace = {ConvertAtomsToStrings ['']}
-    BreakList = ['.' ':' '-' '(' ')' '[' ']' '{' '}' ',' '\'' '!' '?'] % TODO should handle parentheses handling with subfunctions
-    BreakListNumber = {List.map BreakList fun {$ X} {Atom.toString X}.1 end}
+    ToReplace = ["&amp;"#"&"]
+    BreakList = ["." ":" "-" "(" ")" "[" "]" "{" "}" "," "'" "\"" "!" "?"] % TODO should handle parentheses handling with subfunctions
+    BreakListNumber = {List.map BreakList fun {$ X} X.1 end}
 
 % ------------------------------ MODULE LOGIC ------------------------------
 
     proc {ParseStream Stream PredictionDictionaryPort}
-        % thread
-        %     for Line in Stream do SanitizedLine WordList SentenceList in
-        %         thread
-        %             SanitizedLine = {SanitizeLine Line}
-        %             UnitSanitize = unit
-        %         end
-        %         thread
-        %             WordList = {BuildWordList SanitizedLine}
-        %             UnitWordList = unit
-        %         end
-        %         thread
-        %             SentenceList = {BuildSentenceList WordList}
-        %             UnitSentenceList = unit
-        %         end
-        %         thread
-        %             for Sentence in SentenceList do
-        %                 {SentenceToDictionary Sentence PredictionDictionaryPort}
-        %             end
-        %             UnitSendToDictionary = unit
-        %         end
-        %     end
-        %     {Wait UnitSanitize}
-        %     {Wait UnitWordList}
-        %     {Wait UnitSentenceList}
-        %     {Wait UnitSendToDictionary}
-        %     Unit = unit
-        %     {System.show parser(ended)}
-        % end
         for Line in Stream do SanitizedLine WordList SentenceList in
             SanitizedLine = {SanitizeLine Line}
             WordList = {BuildWordList SanitizedLine}
@@ -109,12 +80,14 @@ in
             case Line
                 of CurrChar|TailLine then TailLineOut in
                     if {Char.isSpace CurrChar} then
-                        NextWord SanitizedWord
+                        NextWord ReplacedWord
                     in
-                        SanitizedWord = Word % {Sanitize Word}
-                        if SanitizedWord \= null then
-                            WordTail = nil
-                            LineOut = SanitizedWord|TailLineOut
+                        WordTail = nil
+                        ReplacedWord = {List.filter ToReplace fun {$ X} X.1 == Word end}
+                        if ReplacedWord \= nil then
+                            LineOut = ReplacedWord.1.2|TailLineOut
+                        else
+                            LineOut = Word|TailLineOut
                         end
                         {Loop TailLine NextWord NextWord TailLineOut}
                     else X in
