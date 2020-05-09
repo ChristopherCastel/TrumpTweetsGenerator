@@ -49,8 +49,35 @@ in
 % ------------------------------ MODULE LOGIC ------------------------------
 
     proc {ParseStream Stream PredictionDictionaryPort}
+        % thread
+        %     for Line in Stream do SanitizedLine WordList SentenceList in
+        %         thread
+        %             SanitizedLine = {SanitizeLine Line}
+        %             UnitSanitize = unit
+        %         end
+        %         thread
+        %             WordList = {BuildWordList SanitizedLine}
+        %             UnitWordList = unit
+        %         end
+        %         thread
+        %             SentenceList = {BuildSentenceList WordList}
+        %             UnitSentenceList = unit
+        %         end
+        %         thread
+        %             for Sentence in SentenceList do
+        %                 {SentenceToDictionary Sentence PredictionDictionaryPort}
+        %             end
+        %             UnitSendToDictionary = unit
+        %         end
+        %     end
+        %     {Wait UnitSanitize}
+        %     {Wait UnitWordList}
+        %     {Wait UnitSentenceList}
+        %     {Wait UnitSendToDictionary}
+        %     Unit = unit
+        %     {System.show parser(ended)}
+        % end
         for Line in Stream do SanitizedLine WordList SentenceList in
-            % {System.show {String.toAtom SanitizedLine}}
             SanitizedLine = {SanitizeLine Line}
             WordList = {BuildWordList SanitizedLine}
             SentenceList = {BuildSentenceList WordList}

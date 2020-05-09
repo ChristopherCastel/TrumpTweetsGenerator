@@ -1,18 +1,19 @@
 functor
 import
+    System
     Open
     System
 export
-    readFiles:ReadFiles
+    readfile:ReadFile
 define
     class TextFile from Open.file Open.text end
-    ReadFiles
+    ReadFile
 in
     % Reads the whole file and returns a stream of lines
-    fun {ReadFiles CurrentFileIndex End} % reads whole file
-        FileReader
-        fun {ReadFileLoop} % read file line by line
-            Line = {FileReader getS($)}
+    fun {ReadFile Filename}
+        Filereader = {New TextFile init(name:Filename)}
+        fun {BuildStream}
+            Line = {Filereader getS($)}
         in
             if Line == false then
                 {FileReader close}
@@ -22,11 +23,6 @@ in
             end
         end
     in
-        if CurrentFileIndex > End then
-            nil
-        else
-            FileReader = {New TextFile init(name:'tweets/part_'#CurrentFileIndex#'.txt')}
-            {ReadFileLoop}
-        end
+        {BuildStream}
     end
 end
