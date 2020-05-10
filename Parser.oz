@@ -8,7 +8,6 @@ define
     % Functions
     ParseStream
     SanitizeLine
-    ConvertAtomsToStrings
     BuildWordList
     BuildSentenceList
     SentenceToDictionary
@@ -20,26 +19,9 @@ define
     BreakListNumber
 in
 
-% ---------------------------------- UTILS ----------------------------------
-
-    % Converts a list of Atoms to a list of Strings
-    % flips order
-    % ['a', 'b', 'cde'] -> []
-    fun {ConvertAtomsToStrings AtomsList}
-        fun {Loop AtomsList StringsList}
-            case AtomsList
-                of AtomTuple|AtomsTail then
-                    {Loop AtomsTail {Atom.toString AtomTuple}|StringsList}
-                [] nil then StringsList
-            end
-        end
-    in
-        {Loop AtomsList nil}
-    end
-
 % ---------------------------------- INIT ----------------------------------
 
-    % ToRemove = {ConvertAtomsToStrings ['']}
+    % ToRemove = ...
     ToReplace = ["&amp;"#"&"]
     BreakList = ["." ":" "-" "(" ")" "[" "]" "{" "}" "," "'" "\"" "!" "?"] % TODO should handle parentheses handling with subfunctions
     BreakListNumber = {List.map BreakList fun {$ X} X.1 end}
@@ -91,7 +73,7 @@ in
                         end
                         {Loop TailLine NextWord NextWord TailLineOut}
                     else X in
-                        {Char.toLower CurrChar}|X = WordTail
+                        CurrChar|X = WordTail
                         {Loop TailLine Word X LineOut}
                     end
                 [] nil then
@@ -115,7 +97,8 @@ in
             (Character >= 32 andthen Character =< 126)
         end
         % "trimming" (2+) spaces between words
-        fun {TrimMultiSpaces Line}
+        % every character is converted to lower case
+        fun {Loop Line}
             proc {Loop Line PrevChar LineOut}
                 case Line
                     of CurrChar|OtherChars then
@@ -124,7 +107,7 @@ in
                         if {Char.isSpace CurrChar} andthen {Char.isSpace PrevChar} then
                             {Loop OtherChars CurrChar LineOut}
                         else
-                            LineOut = CurrChar|TailLineOut
+                            LineOut = {Char.toLower CurrChar}|TailLineOut
                             {Loop OtherChars CurrChar TailLineOut}
                         end
                     [] nil then
@@ -138,7 +121,7 @@ in
         RestrictedISO8859Line
     in
         RestrictedISO8859Line = {List.filter Line IsRestrictedISO8859Defined}
-        {TrimMultiSpaces RestrictedISO8859Line}
+        {Loop RestrictedISO8859Line}
     end
 
     fun {BuildSentenceList Line}
