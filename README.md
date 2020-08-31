@@ -1,4 +1,4 @@
-# Structure du projet
+# Structure
 
 Générateur 2-gram multithreaded de tweets Trump.
 
