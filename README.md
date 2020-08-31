@@ -1,6 +1,6 @@
-(Groupe AY : Christopher Castel 22421900, Martin D’Hoedt 47751500)
-
 # Structure du projet
+
+Générateur 2-gram multithreaded de tweets Trump.
 
 ## tweets
 
