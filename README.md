@@ -1,6 +1,6 @@
 # Structure
 
-Générateur 2-gram multithreaded de tweets Trump.
+Générateur 2-gramme multithreaded de tweets Trump.
 
 ## tweets
 
